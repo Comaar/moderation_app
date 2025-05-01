@@ -1,0 +1,8 @@
+Flask>=2.0
+detoxify
+transformers>=4.38.0
+torch>=2.0
+Pillow>=9.0
+accelerate>=0.25.0
+einops
+PyMuPDF>=1.18.0 # Add this line

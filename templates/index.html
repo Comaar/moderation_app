@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Content Moderation Tool</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        /* Optional: Add some spacing for image results list */
+        .image-result-item { border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 10px; }
+        .image-result-item:last-child { border-bottom: none; }
+        .image-result-item h4 { margin-bottom: 5px; color: #555; }
+    </style>
+</head>
+<body>
+    <h1>PDF Content Moderation</h1>
+    <div class="container">
+        <div class="input-section">
+            <h2>Input</h2>
+            <form method="POST" action="/moderate" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label for="pdf_input">Upload PDF Document:</label>
+                    <input type="file" name="pdf_input" id="pdf_input" accept=".pdf" required>
+                </div>
+                <button type="submit">Moderate PDF</button>
+            </form>
+             {% if uploaded_filename %}
+             <p style="margin-top:15px;"><i>Processing: {{ uploaded_filename }}</i></p>
+             {% endif %}
+        </div>
+
+        <div class="output-section">
+            <h2>Moderation Results</h2>
+
+            {% if error %}
+                <div class="error">
+                    <h3>Error:</h3>
+                    <p>{{ error }}</p>
+                </div>
+            {% endif %}
+
+            {% if text_results %}
+                <div class="result-block">
+                    <h3>Overall Text Moderation (Detoxify - toxic-bert)</h3>
+                     {% if text_results.status == 'processed' %}
+                        <p><strong>Label:</strong> {{ text_results.label }}</p>
+                        <p><strong>Toxicity Score:</strong> {{ "%.4f"|format(text_results.score) }}</p>
+                        <!-- Optional display all scores -->
+                        <!--
+                        <details>
+                            <summary>Show all scores</summary>
+                            <pre>{{ text_results.all_scores | tojson(indent=2) }}</pre> {# Use tojson for dicts #}
+                        </details>
+                        -->
+                    {% elif text_results.status == 'no_text' %}
+                         <p><i>No significant text found in the PDF to moderate.</i></p>
+                    {% elif text_results.status == 'error' %}
+                         <p style="color: red;"><i>Error during text moderation: {{ text_results.message }}</i></p>
+                     {% endif %} {# Closes inner if text_results.status #}
+                </div>
+            {% endif %} {# Closes outer if text_results #}
+
+            {# Check if image_results list exists #}
+            {% if image_results is defined and image_results is not none %}
+                 {# Check if the list is not empty #}
+                 {% if image_results|length > 0 %}
+                     <div class="result-block">
+                        <h3>Image Moderation (PaliGemma)</h3>
+                        {% for img_res in image_results %}
+                            <div class="image-result-item">
+                                <h4>Image on Page {{ img_res.page_number }} (Index {{ img_res.image_index }})</h4>
+                                {% if img_res.status == 'processed' %}
+                                    <p><strong>Sexually Explicit:</strong> {{ img_res.results.sexually_explicit }}</p>
+                                    <p><strong>Dangerous Content:</strong> {{ img_res.results.dangerous }}</p>
+                                    <p><strong>Violence / Gore:</strong> {{ img_res.results.violence_gore }}</p>
+                                    <p><strong>Hate Symbol (e.g., Swastika):</strong> {{ img_res.results.hate_symbol }}</p>
+                                    <p><small><i>Note: Image moderation results are based on AI interpretation and may not be perfect. Hate symbol detection is experimental.</i></small></p>
+                                {% elif img_res.status == 'error' %}
+                                     <p style="color: red;"><i>Error moderating this image: {{ img_res.message }}</i></p>
+                                {% elif img_res.status == 'skipped' %}
+                                     <p><i>Skipped: {{ img_res.message }}</i></p> {# Display skip message #}
+                                {% endif %} {# Closes inner if img_res.status #}
+                             </div>
+                        {% endfor %} {# Closes for loop #}
+                     </div>
+                 {% else %} {# Corresponds to if image_results|length > 0 #}
+                     <div class="result-block">
+                        <h3>Image Moderation (PaliGemma)</h3>
+                        <p><i>No images were processed (or none found) in the PDF.</i></p> {# Message when list is empty #}
+                    </div>
+                 {% endif %} {# Closes if image_results|length > 0 #}
+            {% endif %} {# Closes if image_results is defined #}
+
+
+             {% if not text_results and (image_results is not defined or image_results is none or image_results|length == 0) and not error and request.method == 'POST' %}
+                 <p><i>No content could be extracted or moderated from the PDF, or no results to display.</i></p>
+             {% elif not text_results and (image_results is not defined or image_results is none or image_results|length == 0) and not error and request.method == 'GET' %}
+                 <p><i>Upload a PDF to see moderation results here.</i></p>
+             {% endif %}
+        </div>
+    </div>
+</body>
+</html>
