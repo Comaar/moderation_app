@@ -289,7 +289,7 @@ def moderate():
 
                 # -------- Image Moderation Control --------
                 # Set this to False to skip slow image moderation during testing
-                ENABLE_IMAGE_MODERATION = True # <-- SET TO True TO ENABLE IMAGE MODERATION
+                ENABLE_IMAGE_MODERATION = False # <-- SET TO True TO ENABLE IMAGE MODERATION
                 # ------------------------------------------
 
                 if ENABLE_IMAGE_MODERATION:
